@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#172321" />
+    <meta name="description" content="Take the evening shift. A atmospheric New York taxi driving game with a living city, real fares, and a little room to breathe." />
+    <title>Hustle Cab — City Shift</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/city-shift.css" />
+  </head>
+  <body>
+    <canvas id="world" aria-label="Three-dimensional taxi driving game"></canvas>
+    <div class="film-grain" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Hustle Cab home"><span class="brand-icon">H<span>↗</span></span><span>HUSTLE CAB<small>NEW YORK · CITY SHIFT</small></span></a>
+      <div class="place"><span class="live-dot"></span><span id="location">GREENWICH VILLAGE</span><span class="place-divider">/</span><span id="clock">18:42</span></div>
+      <div class="header-actions"><button id="sound" class="icon-button" aria-label="Enable sound" title="Sound (R)">♫<span id="sound-label">OFF</span></button><button id="pause-button" class="icon-button hidden" aria-label="Pause game">Ⅱ</button></div>
+    </header>
+
+    <main id="welcome" class="welcome">
+      <div class="edition"><span></span> A LITTLE NEW YORK ADVENTURE <span class="edition-no">★</span></div>
+      <h1>Big city.<br><em>Good stories.</em></h1>
+      <p class="intro">Meet the locals. Catch the green lights.<br>Your next good story is just around the corner.</p>
+      <div class="shift-detail"><span class="weather-symbol">☀</span><div><strong>Sun’s out. Cabs out.</strong><span>Blue skies · 24°C · The Village is buzzing</span></div></div>
+      <button id="start" class="primary" disabled><span id="start-label">Preparing your cab</span><span>↗</span></button>
+      <div class="start-caption">Hop in. We saved you the driver’s seat.</div>
+      <div class="welcome-controls"><span><kbd>W A S D</kbd> DRIVE</span><span><kbd>SPACE</kbd> BRAKE</span><span><kbd>C</kbd> CAMERA</span></div>
+    </main>
+    <aside id="scene-caption" class="scene-caption"><span>ON THE CORNER OF</span><strong>Bleecker &amp; Sullivan</strong><p>Somewhere to be. Something to discover.</p></aside>
+    <footer id="welcome-footer" class="welcome-footer"><span>A GOOD DAY TO TAKE THE LONG WAY.</span><button id="tour" class="text-button">Just here for a joyride? <span>→</span></button><span class="version">EST. 2026 <i>◆</i> NYC</span></footer>
+
+    <section id="hud" class="hidden" aria-label="Driving instruments">
+      <aside class="dispatch panel">
+        <div class="panel-eyebrow"><span id="dispatch-label">DISPATCH / AVAILABLE FARE</span><span id="fare-number">01</span></div>
+        <div class="rider"><div class="avatar" id="avatar">JM</div><div><h2 id="rider-name">Julia Moreno</h2><span id="rider-description">Heading home · Easygoing</span></div><span class="rider-rating">★ 4.9</span></div>
+        <div class="itinerary"><div class="stop pickup"><span></span><div><small>PICKUP</small><strong id="pickup-name">Bleecker Street Coffee</strong></div></div><div class="stop destination"><span></span><div><small>DESTINATION</small><strong id="destination-name">Washington Square</strong></div></div></div>
+        <div class="fare-estimate"><span id="fare-meta">ESTIMATED FARE</span><strong id="fare-value">$18–24</strong></div>
+        <button id="accept" class="primary compact"><span>Accept fare</span><span><kbd>E</kbd> ↗</span></button>
+        <div id="comfort-wrap" class="hidden"><div class="comfort-label"><span>PASSENGER COMFORT</span><span id="comfort-value">100%</span></div><div class="comfort-track"><i id="comfort-bar"></i></div><p id="passenger-line">“No rush. Just get me there in one piece.”</p></div>
+        <button id="skip" class="text-button skip">Next request <span>→</span></button>
+      </aside>
+      <div class="shift-money"><span>SHIFT EARNINGS</span><strong id="money">$0<span>.00</span></strong><div><span class="gold">★</span> <span id="rating">5.00</span><span class="money-separator">/</span><span id="trips">0 trips</span></div></div>
+      <div id="navigation" class="navigation panel"><div class="nav-arrow" id="nav-arrow">↑</div><div><strong id="nav-distance">60 m</strong><span id="nav-instruction">Continue on Sullivan Street</span></div></div>
+      <div class="map-panel panel"><div class="map-heading"><span><span class="live-dot"></span> <span id="map-district">THE VILLAGE</span></span><button id="map-button" aria-label="Expand map (M)">↗</button></div><canvas id="minimap" width="480" height="360" aria-label="Street map showing your taxi and route"></canvas><div class="map-footer"><span><i class="map-key"></i> YOUR CAB</span><span id="map-status">AVAILABLE FOR HIRE</span></div></div>
+      <div class="dashboard"><div class="speed-ring"><svg viewBox="0 0 180 160" aria-hidden="true"><path class="gauge-track" d="M 31 132 A 72 72 0 1 1 149 132"/><path id="gauge-fill" d="M 31 132 A 72 72 0 1 1 149 132"/></svg><div class="speed-value"><strong id="speed">0</strong><span>MPH</span></div><span class="gear" id="gear">P</span><span class="speed-limit">25</span></div><div class="cab-status"><span id="cab-state">● READY TO ROLL</span><span id="condition">100%</span></div><div class="condition-track"><i id="condition-bar"></i></div><div class="dashboard-bottom"><span>NYC <b>TAXI</b> 04—28</span><button id="recover" title="Return to a clear road (X)">RECOVER ↺</button></div></div>
+      <div class="driving-controls"><span><kbd>WASD</kbd> DRIVE</span><span><kbd>SPACE</kbd> BRAKE</span><span><kbd>H</kbd> HORN</span><span><kbd>C</kbd> VIEW</span><span><kbd>P</kbd> PAUSE</span></div>
+      <div id="interaction" class="interaction hidden"><kbd>E</kbd><span>Pick up passenger</span></div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="receipt" class="receipt hidden" role="status"><span class="panel-eyebrow">ANOTHER STORY, SAFELY HOME</span><h2>Nice driving.</h2><strong id="receipt-total">+$24.50</strong><p id="receipt-breakdown">Fare $20.00 + tip $4.50</p><div id="receipt-stars">★★★★★</div><p id="receipt-quote">“That was exactly the ride I needed.”</p></div>
+      <div id="touch-controls"><div><button data-key="KeyA" aria-label="Steer left">←</button><button data-key="KeyD" aria-label="Steer right">→</button></div><div><button data-key="KeyS" aria-label="Brake and reverse">↓</button><button data-key="KeyW" aria-label="Accelerate">↑</button></div></div>
+    </section>
+
+    <dialog id="pause-menu"><span class="panel-eyebrow">COFFEE BREAK?</span><h2>Park it here.</h2><p>Your next passenger can wait a minute.</p><button id="resume" class="primary"><span>Back to the good stuff</span><span>↗</span></button><div class="settings-row"><label for="weather">Atmosphere</label><select id="weather"><option value="sunny">Sunny & blue skies</option><option value="rain">Evening rain</option><option value="night">Night shift</option></select></div><div class="settings-row"><label for="quality">Graphics</label><select id="quality"><option value="high">High</option><option value="balanced">Balanced</option></select></div><div class="settings-row"><span>Camera <kbd>C</kbd></span><button id="camera-button" class="text-button">Chase →</button></div><p class="menu-controls">WASD / arrows to drive · Hold S / ↓ to reverse<br>Space to brake · E to accept / board / drop off<br>H horn · R sound · M map · C camera · X recover</p><button id="end-shift" class="text-button">Finish shift →</button><p id="best-shift" class="best-shift"></p></dialog>
+    <dialog id="map-dialog"><div class="map-heading"><span>MANHATTAN / DISPATCH MAP</span><button id="close-map" aria-label="Close map">✕</button></div><canvas id="fullmap" width="800" height="800" aria-label="Full city map"></canvas><div class="map-footer"><span>YELLOW: YOUR CAB · MINT: ROUTE</span><span>M / ESC TO CLOSE</span></div></dialog>
+    <div id="fatal" class="hidden" role="alert"><h2>The cab couldn’t start.</h2><p id="fatal-message"></p><button onclick="location.reload()">Try again</button></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

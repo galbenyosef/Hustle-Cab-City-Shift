@@ -1,0 +1,100 @@
+import { chromium } from '@playwright/test';
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+
+await mkdir('artifacts', { recursive: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+
+try {
+  await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.__taxi && !document.getElementById('start').disabled, null, { timeout: 60000 });
+  await page.screenshot({ path: 'artifacts/welcome-desktop.png' });
+  await page.click('#start');
+  await page.waitForFunction(() => window.__taxi.audio.enabled && window.__taxi.audio.context.state === 'running');
+  await page.evaluate(() => {
+    const audio = window.__taxi.audio;
+    window.__audioMeter = audio.context.createAnalyser();window.__audioMeter.fftSize = 1024;
+    audio.master.connect(window.__audioMeter);
+  });
+  await page.waitForTimeout(300);
+  assert.ok(await page.evaluate(() => {
+    const samples = new Float32Array(window.__audioMeter.fftSize);
+    window.__audioMeter.getFloatTimeDomainData(samples);
+    return Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length) > .005;
+  }), 'engine must produce a non-silent audio signal after starting');
+  await page.keyboard.down('KeyS');await page.waitForTimeout(1200);await page.keyboard.up('KeyS');
+  assert.ok(await page.evaluate(() => window.__taxi.vehicle.speed < -1), 'reverse must pull away in the real frame loop');
+  assert.equal(await page.locator('#gear').textContent(), 'R');
+  await page.keyboard.down('Space');await page.waitForFunction(() => window.__taxi.vehicle.speed === 0);await page.keyboard.up('Space');
+  assert.equal(await page.evaluate(() => window.__taxi.state.weather), 'sunny');
+  await page.click('#sound');assert.equal(await page.evaluate(() => window.__taxi.audio.enabled), false);
+  await page.click('#sound');await page.waitForFunction(() => window.__taxi.audio.enabled);
+  const walkerBefore = await page.evaluate(() => window.__taxi.city.pedestrians.map(walker => ({ progress: walker.progress, knee: walker.person.userData.legs[0].knee.rotation.x })));
+  await page.waitForTimeout(1500);
+  assert.ok(await page.evaluate(before => window.__taxi.city.pedestrians.some((walker, index) => Math.abs(walker.progress - before[index].progress) > .2 && Math.abs(walker.person.userData.legs[0].knee.rotation.x - before[index].knee) > .03), walkerBefore), 'walking must move both the person and the leg joints');
+  assert.ok(await page.evaluate(() => window.__taxi.city.traffic.length >= 40 && window.__taxi.city.pedestrians.length >= 70));
+  await page.click('#accept');
+  assert.equal(await page.evaluate(() => window.__taxi.state.mission), 'pickup');
+  await page.keyboard.down('KeyW');await page.waitForTimeout(1700);await page.keyboard.up('KeyW');
+  assert.ok(await page.evaluate(() => window.__taxi.vehicle.speed > 2), 'accelerator must move the cab');
+  await page.screenshot({ path: 'artifacts/driving-desktop.png' });
+  await page.evaluate(() => window.__taxi.place(window.__taxi.currentFare().pickup));
+  await page.keyboard.press('KeyE');
+  await page.waitForFunction(() => window.__taxi.state.mission === 'ride', { timeout: 15000 });
+  assert.equal(await page.locator('#comfort-wrap').isVisible(), true);
+  await page.keyboard.press('KeyP');
+  assert.equal(await page.locator('#pause-menu').isVisible(), true);
+  const time = await page.evaluate(() => window.__taxi.state.time);
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__taxi.state.time), time);
+  await page.selectOption('#weather', 'rain');
+  await page.click('#resume');
+  assert.equal(await page.evaluate(() => window.__taxi.state.weather), 'rain');
+  await page.screenshot({ path: 'artifacts/rain-desktop.png' });
+  await page.keyboard.press('KeyC');
+  assert.equal(await page.evaluate(() => window.__taxi.state.camera), 1);
+  await page.keyboard.press('KeyC');await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyM');assert.equal(await page.locator('#map-dialog').isVisible(), true);
+  await page.keyboard.press('Escape');assert.equal(await page.locator('#map-dialog').isVisible(), false);
+  await page.evaluate(() => {
+    const game = window.__taxi;
+    game.vehicle.distance += 250;
+    game.place(game.currentFare().destination);
+  });
+  await page.keyboard.press('KeyE');
+  assert.equal(await page.evaluate(() => window.__taxi.state.mission), 'complete');
+  assert.equal(await page.evaluate(() => window.__taxi.state.trips), 1);
+  assert.ok(await page.evaluate(() => window.__taxi.state.earnings > 10));
+  await page.screenshot({ path: 'artifacts/completed-fare.png' });
+  await page.keyboard.press('KeyP');await page.selectOption('#weather', 'night');await page.click('#resume');
+  await page.screenshot({ path: 'artifacts/night-desktop.png' });
+  const metrics = await page.evaluate(() => window.__taxi.metrics);
+  assert.ok(await page.evaluate(() => window.__taxi.city.traffic.some(traffic => traffic.turns > 2)), 'traffic must turn through the neighbourhood');
+  console.log('Desktop flow passed:', JSON.stringify(metrics));
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  mobile.on('pageerror', error => errors.push(error.message));
+  await mobile.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
+  await mobile.waitForFunction(() => window.__taxi && !document.getElementById('start').disabled);
+  await mobile.screenshot({ path: 'artifacts/welcome-mobile.png' });
+  await mobile.tap('#start');await mobile.tap('#accept');
+  await mobile.locator('[data-key="KeyW"]').dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'touch' });
+  await mobile.waitForTimeout(700);
+  await mobile.locator('[data-key="KeyW"]').dispatchEvent('pointerup', { pointerId: 1, pointerType: 'touch' });
+  assert.ok(await mobile.evaluate(() => window.__taxi.vehicle.speed > 0));
+  await mobile.screenshot({ path: 'artifacts/driving-mobile.png' });
+  assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  console.log('Mobile layout and controls passed.');
+  assert.deepEqual(errors, []);
+  console.log('No browser errors. Screenshots saved in artifacts/.');
+} catch (error) {
+  console.error('Browser errors:', errors);
+  console.error('Startup message:', await page.locator('#fatal-message').textContent());
+  await page.screenshot({ path: 'artifacts/failure.png' });
+  throw error;
+} finally {
+  await browser.close();
+}
